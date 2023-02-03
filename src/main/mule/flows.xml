@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:graphql="http://www.mulesoft.org/schema/mule/graphql-router" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/graphql-router http://www.mulesoft.org/schema/mule/graphql-router/current/mule-graphql-router.xsd">
+  <flow name="api-main-flow">
+    <http:listener config-ref="http-listener-config" path="${http.listener.path}"/>
+    <graphql:route config-ref="api-router-config"/>
+  </flow>
+  <flow name="Query.messagesUnion">
+    <graphql:data-fetcher config-ref="api-router-config" objectTypeName="Query" fieldName="messagesUnion"/>
+		<flow-ref name="messagesDB"/>
+    <graphql:serialize config-ref="api-router-config" objectTypeName="Query" fieldName="messagesUnion"/>
+  </flow>
+  <flow name="Query.messagesInterface">
+    <graphql:data-fetcher config-ref="api-router-config" objectTypeName="Query" fieldName="messagesInterface"/>
+		<flow-ref name="messagesDB"/>
+    <graphql:serialize config-ref="api-router-config" objectTypeName="Query" fieldName="messagesInterface"/>
+  </flow>
+
+	<flow name="messagesDB">
+		<set-payload value='#[
+      var DEBUG    = "DEBUG"
+      var INFO     = "INFO"
+      var WARNING  = "WARNING"
+      var ERROR    = "ERROR"
+      var CRITICAL = "CRITICAL"
+      var start_date = |2022-08-13T00:00-03:00|
+      fun Error(message, time_offset, level, stacktrace) = {
+      	"__typename": "ErrorMessage",
+      	message: message, when: (start_date + time_offset) as String, level: level,
+      	stacktrace: stacktrace,
+      }
+      fun Info(message, time_offset, level) = {
+      	"__typename": "InfoMessage",
+      	message: message, when: (start_date + time_offset) as String, level: level,
+      }
+      fun Frame(symbol_name, file, line, column) = {
+      	symbol_name: symbol_name, file: file, line: line, column: column
+      }
+      fun Metric(message, time_offset, level, metric, value) = {
+      	"__typename": "MetricsMessage",
+      	message: message, when: (start_date + time_offset) as String, level: level,
+      	metric: metric, value: value,
+      }
+      ---
+      [
+      	Info("Sensor powerup", |PT0H|, INFO),
+      	Metric("Temperature: 30 Celsius", |PT0H|, INFO, "temp", 30),
+      	Info("Checking updates...", |PT9H|, INFO),
+      	Metric("Humidity: 30%", |PT10H|, INFO, "humidity", 30),
+      	Metric("Humidity 36%", |PT12H|, INFO, "humidity", 36),
+      	Metric("High humidity: 46%", |PT16H|, WARNING, "humidity", 46),
+      	Metric("High humidity: 66%", |PT18H|, CRITICAL, "humidity", 66),
+      	Error("Critical humidity reached. Starting containment procedure", |PT22H|, ERROR, [
+      		Frame("humidity_sense", "/sense/src/devices/humidity.c", 15, 16),
+      		Frame("humidity_on_tick", "/sense/src/devices/humidity.c", 116, 8),
+      		Frame("poll_devices", "/sense/vendor/libdomotics/drivers/utils.c", 349, 8),
+      		Frame("tick", "/sense/vendor/libdomotics/event_loop.c", 144, 8),
+      		Frame("main", "/sense/src/main.c", 68, 16),
+      	]),
+      	Metric("Event queue is full, dropped events.", |PT22H|, DEBUG, "dropped", 2),
+      	Info("Starting shutting down...", |PT26H|, INFO),
+      	Info("Temperature sensor is not responding. Waiting until answer.", |PT27H|, WARNING),
+      	Info("Bye", |PT28H|, INFO),
+      ]
+    ]'/>
+	</flow>
+</mule>
