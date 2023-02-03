@@ -60,13 +60,6 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>d39537b4-3db4-4277-ad3d-76b1bd78aa26</groupId>
-            <artifactId>logs-demo</artifactId>
-            <version>1.0.0</version>
-            <classifier>graphql</classifier>
-            <type>zip</type>
-        </dependency>
-        <dependency>
             <groupId>org.mule.modules</groupId>
             <artifactId>mule-graphql-module</artifactId>
             <version>0.9.0</version>

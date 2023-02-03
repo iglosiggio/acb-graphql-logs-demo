@@ -1,0 +1,50 @@
+scalar DateTime
+
+type Query {
+  messagesUnion: [LogMessage]
+  messagesInterface: [Loggable]
+}
+
+type ErrorMessage implements Loggable {
+    message: String
+    when: DateTime
+    level: LogLevel
+
+    stacktrace: [Stackframe]
+}
+
+type InfoMessage implements Loggable {
+    message: String
+    when: DateTime
+    level: LogLevel
+}
+
+type MetricsMessage implements Loggable {
+    message: String
+    when: DateTime
+    level: LogLevel
+
+    metric: String
+    value: Float
+}
+
+interface Loggable {
+  message: String
+  when: DateTime
+  level: LogLevel
+}
+
+enum LogLevel {
+  DEBUG, INFO, WARNING, ERROR, CRITICAL
+}
+
+union LogMessage = ErrorMessage
+                 | InfoMessage
+                 | MetricsMessage
+
+type Stackframe {
+  symbol_name: String
+  file: String
+  line: Int
+  column: Int
+}
